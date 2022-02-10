@@ -1,4 +1,4 @@
-# Cairo library for arithmetic on signed {{BIT_LENGTH}}-integers
+# Cairo library for arithmetic on signed {{BIT_LENGTH}}-bit integers
 
 from starkware.cairo.common.cairo_builtins import BitwiseBuiltin
 
