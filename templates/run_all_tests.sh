@@ -20,6 +20,6 @@ do
    echo -e "${BOLD_TEXT}Now running ${GREEN_TEXT}$i ${PLAIN_TEXT}"
    pytest -xvrPA "$i"
 done
-echo -e "\e[1mTests completed on the following files:"
+echo -e "${BOLD_TEXT}Tests completed on the following files:"
 echo -e "$($LS_COMMAND)" 
 
