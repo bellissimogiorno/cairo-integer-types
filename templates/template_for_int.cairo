@@ -281,35 +281,9 @@ namespace Int{{ BIT_LENGTH }}:
     # xor(0,-2)  ->   bitwise_xor(128,126) = 254   ->   -2
     # xor(127,-127)-> bitwise_xor(255,1)   = 254   ->   -2
 
-    # # bitwise OR
-    func or{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(a : Int, b : Int) -> (res : Int):
-        alloc_locals
-        local res_value : felt
-        local a_offset : felt
-        local b_offset : felt
-        let (must_shift_a) = is_le(a.value, -1)  # are a or b negative?
-        let (must_shift_b) = is_le(b.value, -1)
-        if must_shift_a == 1:
-            a_offset = a.value + (2 * SHIFT)
-        else:
-            a_offset = a.value
-        end
-        if must_shift_b == 1:
-            b_offset = b.value + (2 * SHIFT)
-        else:
-            b_offset = b.value
-        end
-        let (res_value) = bitwise_or(a_offset, b_offset)
-        let (must_shift) = is_le(SHIFT, res_value)
-        if must_shift == 1:
-            return (Int(res_value - (2 * SHIFT)))
-        else:
-            return (Int(res_value))
-        end
-    end
 
-    # # bitwise AND
-    func and{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(a : Int, b : Int) -> (res : Int):
+    {% macro bitwise_and_or_or(and_or_or_goes_here) -%}
+    func {{and_or_or_goes_here}}{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(a : Int, b : Int) -> (res : Int):
         alloc_locals
         local res_value : felt
         local a_offset : felt
@@ -326,7 +300,7 @@ namespace Int{{ BIT_LENGTH }}:
         else:
             b_offset = b.value
         end
-        let (res_value) = bitwise_and(a_offset, b_offset)
+        let (res_value) = bitwise_{{and_or_or_goes_here}}(a_offset, b_offset)
         let (must_shift) = is_le(SHIFT, res_value)
         if must_shift == 1:
             return (Int(res_value - (2 * SHIFT)))
@@ -334,6 +308,16 @@ namespace Int{{ BIT_LENGTH }}:
             return (Int(res_value))
         end
     end
+    {% endmacro %}
+
+    # # bitwise OR 
+    # func or{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(a : Int, b : Int) -> (res : Int):
+    {{bitwise_and_or_or("or")}}
+
+    # # bitwise AND 
+    # func and{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(a : Int, b : Int) -> (res : Int):
+    {{bitwise_and_or_or("and")}}
+
 
     # Computes the logical left shift of an int.
     # Note: "fast" bitwise operations aren't available because in the Cairo abstract machine the primitive numerical datatype is a raw field element, not a raw bitstring

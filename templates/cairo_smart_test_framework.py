@@ -1,4 +1,4 @@
-# Welcome to the Cairo smart test framework (cairo-smart-test version 0.1)
+# Welcome to the Cairo smart test framework (cairo-smart-test version 0.1.0)
 #
 # This provides tools for unit- and property-based testing Cairo code from within Python, including the following classes:
 #
