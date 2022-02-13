@@ -1,8 +1,7 @@
 # The _Cairo bitwise integer library_ (cairo-bitwise-int v0.1.1)
-# The _Cairo smart test library_ (cairo-smart-test v0.1.0)
+# The _Cairo smart test library_ (cairo-smart-test v0.1.1)
 
-* Author: Jamie Gabbay
-* Date: 9 February 2022
+Author: Jamie Gabbay
 
 ## What is this?
 
@@ -71,8 +70,9 @@ The unit- and property-based test suite is in the file [`templates/cairo_smart_t
 
 You can use the smart test suite in your own Cairo development just by copying the [`templates/cairo_smart_test_framework.py`](https://github.com/bellissimogiorno/cairo-integer-types/blob/main/templates/cairo_smart_test_framework.py) file into your development and using it, following
 
-* the documentation in that file and
-* the example usages in [`templates/template_for_test_int.py`](https://github.com/bellissimogiorno/cairo-integer-types/blob/main/templates/template_for_test_int.py).
+* the documentation in that file, and
+* the example usages in [`templates/template_for_test_int.py`](https://github.com/bellissimogiorno/cairo-integer-types/blob/main/templates/template_for_test_int.py), and
+* a systematic demonstration of the test suite on a (deliberately buggy!) Cairo code file in the directory [`cairo-smart-test-demo`](https://github.com/bellissimogiorno/cairo-integer-types/blob/main/cairo-smart-test-demo).
 
 Usage is designed to be straightforward but I'm happy to answer questions and act on feedback.
 
