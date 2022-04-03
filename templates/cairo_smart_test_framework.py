@@ -1,4 +1,4 @@
-# Welcome to the Cairo smart test framework (cairo-smart-test version 0.1.1)
+# Welcome to the Cairo smart test framework (cairo-smart-test version 0.2.0)
 #
 # This provides tools for unit- and property-based testing Cairo code from within Python, including the following classes:
 #
@@ -13,11 +13,15 @@
 # To see an application of this framework, see the Cairo bitwise integer library.
 
 import os
+from functools import reduce
 from pprint import pprint
-from typing import List, Dict, Optional, Any
+from typing import Any, Dict, List, Optional
 
 from hypothesis import example, note
 from starkware.cairo.common.cairo_function_runner import CairoFunctionRunner
+
+# (required to wrap input data and pass to Cairo functions that take structs)
+from starkware.cairo.common.structs import CairoStructFactory  # , CairoStructProxy
 from starkware.cairo.lang.cairo_constants import DEFAULT_PRIME
 from starkware.cairo.lang.compiler.cairo_compile import compile_cairo_files
 from starkware.cairo.lang.compiler.program import Program
@@ -30,7 +34,7 @@ def felt_heuristic(x: Any):
             return x - DEFAULT_PRIME
         else:
             return x
-    elif isinstance(x, list) | isinstance(x, tuple):
+    elif isinstance(x, list) or isinstance(x, tuple):
         return list(map(felt_heuristic, x))
     else:
         return x
@@ -42,7 +46,18 @@ class AbstractCairoFunctionClass:
     argument_names: List[
         str
     ]  # ["<name of argument 1 to cairo function>", "<name of argument 2>", ...]
-    number_of_return_values: int  # number of return values (measured in felts)
+    number_of_return_values: Optional[
+        int
+    ]  # number of return values (measured in felts).
+    # If you don't provide a fixed number of return values measured in felts as above, then
+    # you need to provide get_return_values_function instead.  This will receive
+    # * the runner object, and
+    # * the argument values used,
+    # and should populate the return values e.g. by examining memory state
+    # Here's a signature:
+    #    def get_return_values_function(runner, argument_values):
+    #        raise NotImplemented_error
+    get_return_values_function: Optional[Any]
     builtins: List[str]  # ["<first required builtin>", ...]
 
 
@@ -59,6 +74,7 @@ class AbstractCairoTestClass(AbstractCairoFunctionClass):
 class CairoTest:
     def __init__(self, program):
         self.program = program
+        self.struct_factory = CairoStructFactory.from_program(program=program)
 
     # set up a Cairo runner object, invoke the Cairo function `func_name` on a dictionary of name-value pairs as inputs, with the named builtins, and return this runner state
     def invoke_function_by_name(
@@ -85,7 +101,15 @@ class CairoTest:
         )
         # ... and collect the results.
         # (Can't guess the number of return values: user has to say.)
-        results = runner.get_return_values(func_class.number_of_return_values)
+        if func_class.number_of_return_values != None:
+            # User specified (possibly zero) number of felt return values?
+            results = runner.get_return_values(func_class.number_of_return_values)
+        elif func_class.get_return_values_function != None:
+            # User specified None number of felt return values, but provided a function to peek return values given the runner and the argument values?
+            results = func_class.get_return_values_function(runner, argument_values)
+        else:
+            # User specified None number of felt return values, and None function to peek return values directly from runner?  Oh dear, better call for help:
+            raise NotImplementedError
         return results
 
     # `run` is the interface between the test case generators and the Cairo executable
@@ -102,7 +126,7 @@ class CairoTest:
             results = self.invoke_function(test_class, argument_values)
 
         except:
-            # Exception raised on function invocation?  
+            # Exception raised on function invocation?
             # Test whether failure on inputs was expected and return
             try:
                 test_class.failure_function(*argument_values)
@@ -110,7 +134,9 @@ class CairoTest:
                 # * Invoking the function raised a runtime error
                 # * test_class.failure_function expected a runtime error
                 if results_accumulator != None:
-                    results_accumulator.append(("Failure (as expected)", argument_values))
+                    results_accumulator.append(
+                        ("Failure (as expected)", argument_values)
+                    )
                 # All is good, so return
                 return
             except:
@@ -118,16 +144,18 @@ class CairoTest:
                 # * Invoking the function raised a runtime error
                 # * test_class.failure_function did not expect a runtime error.  Some debugging may be required!
                 if results_accumulator != None:
-                    results_accumulator.append(("!!!! Failure (NOT expected) !!!!", argument_values))
-                # All is not good, so re-raise exception 
-                raise 
+                    results_accumulator.append(
+                        ("!!!! Failure (NOT expected) !!!!", argument_values)
+                    )
+                # All is not good, so re-raise exception
+                raise
 
         # No runtime error?  Test whether a successful run (inputs, outputs) is expected
         try:
             test_class.success_function(*argument_values, *results)
             # If we end up here it means that:
             # * Invoking the function completed successfully
-            # * test_class.success_function expected this 
+            # * test_class.success_function expected this
             if results_accumulator != None:
                 results_accumulator.append(
                     ("Success (as expected)", argument_values, results)
@@ -142,9 +170,8 @@ class CairoTest:
                 results_accumulator.append(
                     ("!!!! Success (NOT expected) !!!!", argument_values, results)
                 )
-                # All is not good, so re-raise exception
-                raise 
-
+            # All is not good, so re-raise exception
+            raise
 
     ## A small utility to run a list of tests on a list of input argument values.  The test classes should all take argument values of the same types (e.g. "A pair of felts").
     def run_tests_with(
@@ -172,10 +199,10 @@ def compile_cairo_code_from_(filename: str):
 class SmartTest:
     # Initialise a smart test with either a filename (to be compiled using compile_cairo_code_from(filename)), or a precompiled test object, which in either case gets stored in self.test_object
     def __init__(self, test_object=None, filename=None):
-        if (filename == None) & (test_object != None):
+        if (filename == None) and (test_object != None):
             # We have a test object?  Load it into self.test_object
             self.test_object = test_object
-        elif (filename != None) & (test_object == None):
+        elif (filename != None) and (test_object == None):
             # We have a file name?  Compile it and load it into self.test_object
             self.test_object = CairoTest(compile_cairo_code_from_(filename))
         else:
@@ -189,6 +216,9 @@ class SmartTest:
         self.LastTest = None
         # Initialising results_accumulator to None.  Set it to [] to accumulate results
         self.results_accumulator = None
+        # Some passthrough variables
+        self.program = self.test_object.program
+        self.struct_factory = self.test_object.struct_factory
 
     # self.run saves the last test applied in self.LastTest, for convenient access during diagnostics.
     # If the flag self.run_tests is set to False, then self.run _only_ saves the test into self.LastTest -- it won't actually run it.
@@ -236,13 +266,37 @@ class SmartTest:
         else:
             pprint(felt_heuristic(self.results_accumulator))
 
+    # Conveniently run diagnostics on a Hypothesis test
+    def diagnose_test(self, a_test):
+        # stash the results_accumulator
+        restore_results_accumulator = self.results_accumulator
+        # reset the results_accumulator to an empty list
+        self.results_accumulator = []
+        # run a_test
+        try:
+            a_test()
+        except:
+            # error?  print the results anyway, for diagnostics
+            self.pretty_print_accumulated_results()
+            # then pass the error on
+            raise
+        # print the results
+        self.pretty_print_accumulated_results()
+        # undo stash
+        self.results_accumulator = restore_results_accumulator
+
 
 # A unit test builder.
 # Technically, this is a decorator (higher-order function) which applies a function to a list of examples
-def unit_tests_on(list_of_argument_values: List[List[int]]):
+def unit_tests_on(list_of_argument_values: List[List[Any]]):
     def run_each_example_with_(f):
         for argument_values in list_of_argument_values:
             f = example(argument_values)(f)
         return f
 
     return run_each_example_with_
+
+
+# Utility function: `chain` maps [f1, f2, ..., fn] to "do f1, then f2, ..., then fn".
+def chain(*f1_f2___fn):
+    return reduce(lambda f, g: lambda x: g(f(x)), f1_f2___fn, lambda x: x)

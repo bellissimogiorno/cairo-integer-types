@@ -8,7 +8,7 @@ from jinja2 import Template
 # Get templates from here (note trailing slash)
 PATH_TO_TEMPLATES = "templates/"
 # Write code to here
-PATH_TO_CODE = "code/"
+PATH_TO_CODE = "int_fixedwidth/"
 
 # List of bit lengths for which we want to output code
 bit_lengths = [4, 6, 8, 10, 12, 16, 32, 64, 124, 125]

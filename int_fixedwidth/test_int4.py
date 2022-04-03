@@ -13,17 +13,17 @@
 # Some key constants
 
 # File is parametric over values for BIT_LENGTH up to 128
-CAIRO_FILE_NAME = "uint{{ BIT_LENGTH }}.cairo"
-BIT_LENGTH = {{BIT_LENGTH}}
+CAIRO_FILE_NAME = "int4.cairo"
+BIT_LENGTH = 4
 WORD_SIZE = 2 ** BIT_LENGTH  # MAX_VAL - MIN_VAL + 1
-SHIFT = 2 ** BIT_LENGTH
-MIN_VAL = 0
+SHIFT = 2 ** (BIT_LENGTH - 1)
+MIN_VAL = -SHIFT
 MAX_VAL = SHIFT - 1
 ALL_ONES = WORD_SIZE - 1  # e.g. if BIT_LENGTH = 8 then ALL_ONES = 255
 # The 128 in RC_BOUND below is fixed by the Cairo system
 RC_BOUND = 2 ** 128
 
-NAMESPACE = "Uint{{BIT_LENGTH}}"
+NAMESPACE = "Int4"
 
 # Imports
 
@@ -35,6 +35,7 @@ from cairo_smart_test_framework import (
     AbstractCairoTestClass,
     CairoTest,
     SmartTest,
+    felt_heuristic,
     unit_tests_on,
 )
 from hypothesis import HealthCheck, event
@@ -54,12 +55,25 @@ from starkware.starknet.public.abi import ADDR_BOUND, MAX_STORAGE_ITEM_SIZE
 ## Wrap this in the smart test infrastructure for convenient use both in hypothesis and in the repl
 # smart_test = SmartTest(test_object = test_object)
 smart_test = SmartTest(filename=CAIRO_FILE_NAME)
-# Constructor for Uint datatype
-Uint = getattr(smart_test.struct_factory.structs, NAMESPACE).Uint
+# Constructor for Int datatype
+Int = getattr(smart_test.struct_factory.structs, NAMESPACE).Int
 
 # If the constant here don't match up with the corresponding constants in the Cairo source, then something might be not right
 assert smart_test.test_object.program.get_const("BIT_LENGTH") == BIT_LENGTH
 assert smart_test.test_object.program.get_const("SHIFT") == SHIFT
+
+
+## Some utility functions
+
+# Rather crude function that treats a >= RC_BOUND as representing a negative integer.
+# Works if 0 <= a < RC_BOUND or DEFAULT_PRIME-RC_BOUND < a < DEFAULT_PRIME
+def felt_to_num(a):
+    return a - DEFAULT_PRIME if a >= RC_BOUND else a
+
+
+# modulo by DEFAULT_PRIME
+def mod_default_prime(a):
+    return a % DEFAULT_PRIME
 
 
 # first argument is a felt (i.e. an integer a such that 0 <= a < DEFAULT_PRIME, e.g. obtained from call to cairo function),
@@ -67,20 +81,23 @@ assert smart_test.test_object.program.get_const("SHIFT") == SHIFT
 # and they're equal modulo DEFAULT_PRIME
 def assert_felt_eq_num(a, b):
     assert (0 <= a) and (a < DEFAULT_PRIME)
-    assert a == b
+    assert mod_default_prime(a - b) == 0
 
 
 # Datatypes
 
 ## "Some" inputs for unit tests.  Data is always a list of tuples (even if tuple is 1-ary)
 
-# We need `list` here not because `map` is lazy, but because the product of `map` is consumed on first evaluation.
-some_num = [Uint(a) for a in [ 
+# Note: the Cairo abstract machine responds to negative inputs (at least if they are not too large -- I haven't tested the general case) by taking them modulo DEFAULT_PRIME
+some_num = [Int(a) for a in [ 
             # some small numbers
             0,
             1,
+            -1,
             2,
+            -2,
             3,
+            -3,
             # good for testing pow2 and shl
             BIT_LENGTH - 1,
             BIT_LENGTH - 2,
@@ -90,6 +107,10 @@ some_num = [Uint(a) for a in [
             MAX_VAL,
             MAX_VAL - 1,
             MAX_VAL - 2,
+            # some small numbers
+            MIN_VAL,
+            MIN_VAL + 1,
+            MIN_VAL + 2,
             # some half-way numbers (by division)
             SHIFT // 2,
             (SHIFT // 2) - 1,
@@ -107,7 +128,7 @@ some_num_pair = [(a, b) for a in some_num for b in some_num]  # quadratic length
 ## "Arbitrary" inputs for property-based tests.
 ## Data is always a list of tuples (even if tuple is 1-ary)
 
-arbitrary_num = st.builds(Uint, st.integers(min_value=MIN_VAL, max_value=MAX_VAL))
+arbitrary_num = st.builds(Int, st.integers(min_value=MIN_VAL, max_value=MAX_VAL))
 arbitrary_bool = st.integers(
     min_value=0, max_value=1
 )  # A bool in Cairo is just a felt that's 0 or 1
@@ -122,69 +143,20 @@ arbitrary_num_and_felt = st.tuples(arbitrary_num, arbitrary_felt)
 
 ## "Some" and "Arbitrary" inputs designed for checking range-checks
 
-some_num_possibly_out_of_bounds = some_num + [Uint(MAX_VAL + 1), Uint(MIN_VAL - 1)]
-arbitrary_num_possibly_out_of_bounds =  st.builds(Uint, st.integers(
-        # // rounds negative numbers _down_, so add 1 to round up and then another 1
-        -(2**70),  # -(DEFAULT_PRIME // 2) + 2,
-        2**70,  # (DEFAULT_PRIME // 2) - 1,
-))
+some_num_possibly_out_of_bounds = some_num + [Int(MAX_VAL + 1), Int(MIN_VAL - 1)]
+arbitrary_num_possibly_out_of_bounds = st.builds(Int, st.integers(
+        (-RC_BOUND) + 1,  # inclusive left bound
+        RC_BOUND,  # exclusive right bound
+    )
+)
 
 
 # The tests themselves
 
 
-####################### Tests on backend functions taking a pair of felts
 
 
-class ExpectsFeltPair(AbstractCairoTestClass):
-    argument_names = ["x", "y"]
-    number_of_return_values = 1
-
-
-@randomly_choose(arbitrary_felt_pair)
-def test__bitwise_and(these_arguments):
-    class ThisTest(ExpectsFeltPair):
-        func_name = "bitwise_and"
-        builtins = ["bitwise"]
-
-        def success_function(a_in, b_in, res):
-            expected_res = a_in & b_in
-            assert res == expected_res
-
-    smart_test.run(ThisTest, these_arguments)
-
-
-@randomly_choose(arbitrary_felt_pair)
-def test__bitwise_xor(these_arguments):
-    class ThisTest(ExpectsFeltPair):
-        func_name = "bitwise_xor"
-        builtins = ["bitwise"]
-
-        def success_function(a_in, b_in, res):
-            expected_res = a_in ^ b_in
-            assert res == expected_res
-
-    smart_test.run(ThisTest, these_arguments)
-
-
-@randomly_choose(arbitrary_felt_pair)
-def test__is_le(these_arguments):
-    class ThisTest(ExpectsFeltPair):
-        func_name = "is_le"
-        argument_names = ["a", "b"]
-        builtins = ["range_check"]
-
-        def success_function(a_in, b_in, res):
-            expected_res = (
-                1 if ((b_in - a_in) % DEFAULT_PRIME) < RC_BOUND else 0
-            )  # condition from comment on is_le in cairo/common/math_cmp.cairo
-            assert res == expected_res
-
-    smart_test.run(ThisTest, these_arguments)
-
-
-## Tests on a num not necessarily in bound (thus: which need not be in the interval [MIN_VAL, MAX_VAL])
-# Set up test class
+####################### Tests on functions taking a single num not necessarily in bounds
 
 
 class ExpectsNumPossiblyOutOfBounds(AbstractCairoTestClass):
@@ -208,12 +180,62 @@ def test__num_check(these_arguments):
     smart_test.run(ThisTest, [these_arguments])
 
 
-## Tests on functions taking a single uint
+@unit_tests_on(some_num_possibly_out_of_bounds)
+@randomly_choose(arbitrary_num_possibly_out_of_bounds)
+def test__felt_abs(these_arguments):
+    class ThisTest(ExpectsNumPossiblyOutOfBounds):
+        func_name = NAMESPACE + ".felt_abs"
+        number_of_return_values = 2
+
+        # Works assuming -RC_BOUND < a_in < RC_BOUND
+        def success_function(a, a_abs, a_sign):
+            assert a_abs * felt_to_num(a_sign) == a
+
+        def failure_function(a):
+            assert False, "Cairo run unexpectedly failed"
+
+    smart_test.run(ThisTest, [these_arguments.value])
+
+
+## Tests on functions taking a single num
 
 # Set up test class
 class ExpectsSingleNum(AbstractCairoTestClass):
     argument_names = ["a"]
     number_of_return_values = 1
+
+
+
+@unit_tests_on(some_num)
+@randomly_choose(arbitrary_num)
+def test__id(these_arguments):
+    class ThisTest(ExpectsSingleNum):
+        func_name = NAMESPACE + ".id"
+        builtins = []
+
+        # if a.value = -1 then we expect res = 1 + DEFAULT_PRIME 
+        def success_function(a, res):
+            assert_felt_eq_num(res, a.value)
+
+    smart_test.run(ThisTest, [these_arguments])
+
+
+"""
+# Run this to view results: 
+smart_test.run_tests = True 
+smart_test.results_accumulator = [] 
+test__id()
+smart_test.pretty_print_accumulated_results() 
+"""
+
+"""
+# Run this to hand-tailor specific diagnostics:
+smart_test.run_tests = False
+# Populate LastTest (without running any tests)
+test__id()
+# Populate a list of diagnostic results
+int_id_diagnostic = [(i, smart_test.invoke_LastTest_on(i)) for i in some_num]
+"""
 
 
 @unit_tests_on(some_num)
@@ -224,7 +246,7 @@ def test__not(these_arguments):
         builtins = []
 
         def success_function(a, res):
-            assert_felt_eq_num(res, a.value ^ ALL_ONES)  # XOR with a bitmask
+            assert_felt_eq_num(res, -(a.value + 1))
 
     smart_test.run(ThisTest, [these_arguments])
 
@@ -237,8 +259,10 @@ def test__neg(these_arguments):
         builtins = []
 
         def success_function(a, res):
-            assert_felt_eq_num(res, -a.value % SHIFT)
-            # That number a' between 0 and MAX_VAL such that a' + a = 0 (mod SHIFT)
+            if a.value != MIN_VAL:
+                assert_felt_eq_num(res, -a.value)
+            else:
+                assert_felt_eq_num(res, a.value)
 
     smart_test.run(ThisTest, [these_arguments])
 
@@ -250,17 +274,17 @@ def test__pow2(these_arguments):
         func_name = NAMESPACE + ".pow2"
         builtins = ["range_check"]
 
-        # 2**a % 2**BIT_LENGTH
+        # 2**a % 2**(BIT_LENGTH-1)
         def success_function(a, res):
-            if a.value >= BIT_LENGTH:
-                assert res == 0
+            if 0 <= a.value <= BIT_LENGTH - 2:
+                assert res == 2 ** a.value
             else:
-                assert res == 2**a.value
+                assert res == 0
 
     smart_test.run(ThisTest, [these_arguments])
 
 
-## Tests on a uint pair
+## Tests on an int pair
 
 # Set up test class
 class ExpectsNumPair(AbstractCairoTestClass):
@@ -268,9 +292,16 @@ class ExpectsNumPair(AbstractCairoTestClass):
 
 
 #### Factoring out some shared code
-def eq_with_overflow(expected_num, res, overflow):
-    assert res == (expected_num % SHIFT)
-    assert overflow == expected_num // SHIFT
+def eq_with_overflow(expected_num, actual_felt_returned, overflow_bit):
+    if expected_num > MAX_VAL:
+        assert_felt_eq_num(actual_felt_returned, expected_num - WORD_SIZE)
+        assert_felt_eq_num(overflow_bit, 1)
+    elif expected_num < MIN_VAL:
+        assert_felt_eq_num(actual_felt_returned, expected_num + WORD_SIZE)
+        assert_felt_eq_num(overflow_bit, -1)
+    else:
+        assert_felt_eq_num(actual_felt_returned, expected_num)
+        assert_felt_eq_num(overflow_bit, 0)
 
 
 @unit_tests_on(some_num_pair)
@@ -281,8 +312,8 @@ def test__add(these_arguments):
         number_of_return_values = 2
         builtins = ["range_check"]
 
-        def success_function(a, b, res, carry):
-            eq_with_overflow(a.value + b.value, res, carry)
+        def success_function(a, b, res, overflow):
+            eq_with_overflow(a.value + b.value, res, overflow)
 
     smart_test.run(ThisTest, these_arguments)
 
@@ -295,10 +326,8 @@ def test__sub(these_arguments):
         number_of_return_values = 2
         builtins = ["range_check"]
 
-        def success_function(a, b, res, borrow):
-            # borrow is 1 if borrow occurrs, and
-            # a_sub_b // SHIFT is -1 if borrow occurs
-            eq_with_overflow(a.value - b.value, res, -borrow)
+        def success_function(a, b, res, overflow):
+            eq_with_overflow(a.value - b.value, res, overflow)
 
     smart_test.run(ThisTest, these_arguments)
 
@@ -312,9 +341,22 @@ def test__mul(these_arguments):
         builtins = ["range_check"]
 
         def success_function(a, b, res, overflow):
-            eq_with_overflow(a.value * b.value, res, overflow)
+            assert -SHIFT <= felt_to_num(overflow) < SHIFT
+            assert -SHIFT <= felt_to_num(res) < SHIFT
+            # We can't use assert_felt_eq_num because res + overflow * (2 * SHIFT) might not be in [0, DEFAULT_PRIME).  So we do it by hand:
+            assert mod_default_prime(res + overflow * (2 * SHIFT) - a.value * b.value) == 0
 
     smart_test.run(ThisTest, these_arguments)
+
+
+"""
+# Run this to hand-tailor specific diagnostics:
+smart_test.run_tests = False
+# Populate LastTest (without running any tests)
+test__mul()
+# Populate a (short) list of diagnostic results
+int_mul_diagnostic = felt_heuristic(smart_test.invoke_LastTest_on([86,-5]))
+"""
 
 
 @unit_tests_on(some_num_pair)
@@ -325,16 +367,33 @@ def test__div_rem(these_arguments):
         number_of_return_values = 2
         builtins = ["range_check"]
 
-        def success_function(a, b, res_quotient, res_remainder):
-            if b.value == 0:  # divide by zero?
-                assert res_quotient == 0
-                assert res_remainder == 0
+        def success_function(a, b, quotient, remainder):
+            # Massage the felt outputs (which are between 0 and DEFAULT_PRIME) to Python int values (between MIN_VAL and MAX_VAL)
+            quotient_as_int = felt_to_num(quotient)
+            remainder_as_int = felt_to_num(remainder)
+            # let's get some corner cases out of the way first
+            # divide by zero or divide zero?
+            if (b.value == 0) or (a.value == 0):
+                assert (quotient_as_int == 0) and (remainder_as_int == 0)
+            # divide by -1 and not on the edge case of -2^BIT_LENGTH?
+            elif (b.value == -1) and (a.value != MIN_VAL):
+                assert (quotient_as_int == -a.value) and (remainder_as_int == 0)
+            # divide by -1 and on that edge case of -2^BIT_LENGTH?
+            elif (b.value == -1) and (a.value == MIN_VAL):
+                assert (quotient_as_int == a.value) and (remainder_as_int == 0)
             else:
-                expected_quotient, expected_remainder = divmod(
-                    a.value, b.value
-                )  # of course, divmod is in the cairo hint
-                assert res_quotient == expected_quotient
-                assert res_remainder == expected_remainder
+                # Phew -- it's not a corner case.  Time for some actual arithmetic.
+                # Grab the signs of the inputs
+                sign_of_a_in = 1 if 0 <= a.value else -1
+                sign_of_b_in = 1 if 0 <= b.value else -1
+                # Now check the result
+                assert 0 <= (sign_of_a_in * remainder_as_int) < (sign_of_b_in * b.value)
+                assert a.value == (b.value * quotient_as_int + remainder_as_int)
+            # This pair of asserts may seem slightly obscure: I derived it from these four examples
+            # We expect int_div_rem(7, 2) = (3, 1), since 7 = 3*2+1
+            # We expect int_div_rem(7, -2) = (-3, 1), since 7 = -3*-2 +1
+            # We expect int_div_rem(-7, 2) = (-3, -1), since -7 = -3*2 -1
+            # We expect int_div_rem(-7, -2) = (3, -1), since -7 = 3*-2 -1
 
     smart_test.run(ThisTest, these_arguments)
 
@@ -351,8 +410,7 @@ def test__eq(these_arguments):
         builtins = []
 
         def success_function(a, b, res):
-            assert (res == 0) or (res == 1)
-            assert (a.value == b.value) == (res == 1)
+            assert (res == 1 and a.value == b.value) or (res == 0 and a.value != b.value)
 
     smart_test.run(ThisTest, these_arguments)
 
@@ -366,10 +424,7 @@ def test__lt(these_arguments):
         builtins = ["range_check"]
 
         def success_function(a, b, res):
-            assert (res == 1) == (a.value < b.value)  # if a < b then res should equal 1
-            assert (res == 0) == (
-                a.value >= b.value
-            )  # if a >= b then res should equal 0
+            assert (res == 1 and a.value < b.value) or (res == 0 and a.value >= b.value)
 
     smart_test.run(ThisTest, these_arguments)
 
@@ -383,10 +438,7 @@ def test__le(these_arguments):
         builtins = ["range_check"]
 
         def success_function(a, b, res):
-            assert (res == 1) == (
-                a.value <= b.value
-            )  # if a.value <= b.value then res should equal 1
-            assert (res == 0) == (a.value > b.value)  # if a > b then res should equal 0
+            assert (res == 1 and a.value <= b.value) or (res == 0 and a.value > b.value)
 
     smart_test.run(ThisTest, these_arguments)
 
@@ -406,6 +458,23 @@ def test__xor(these_arguments):
             assert_felt_eq_num(res, a.value ^ b.value)
 
     smart_test.run(ThisTest, these_arguments)
+
+
+"""
+# Run this to view results: 
+smart_test.run_tests = True 
+smart_test.results_accumulator = [] 
+test__xor()
+smart_test.pretty_print_accumulated_results() 
+"""
+
+"""
+smart_test.run_tests = False
+# Populate LastTest (without running any tests)
+test__xor()
+# Populate a (short) list of diagnostic results
+int_xor_diagnostic = felt_heuristic([(i, smart_test.invoke_LastTest_on(i)) for i in some_num_pair])
+"""
 
 
 @unit_tests_on(some_num_pair)
@@ -445,10 +514,18 @@ def test__shl(these_arguments):
         builtins = ["range_check"]
 
         def success_function(a, b, res):
-            if b >= BIT_LENGTH:
+            assert b >= 0
+            if b >= BIT_LENGTH - 1:
                 assert_felt_eq_num(res, 0)
             else:
-                assert res == (a.value << b) % SHIFT
+                unsigned_result = (a.value << b) & ALL_ONES
+                if unsigned_result > MAX_VAL:
+                    assert_felt_eq_num(res, unsigned_result - WORD_SIZE)
+                else:
+                    assert_felt_eq_num(res, unsigned_result)
+
+        def failure_function(a, b):
+            assert (b < 0) or (b >= RC_BOUND)
 
     smart_test.run(ThisTest, these_arguments)
 
@@ -462,7 +539,17 @@ def test__shr(these_arguments):
         builtins = ["range_check"]
 
         def success_function(a, b, res):
-            assert_felt_eq_num(res, (a.value >> b) % SHIFT)
+            assert b >= 0
+            if (b >= BIT_LENGTH - 1) and (a.value >= 0):
+                assert_felt_eq_num(res, 0)
+            elif (b >= BIT_LENGTH - 1) and (a.value < 0):
+                assert_felt_eq_num(res, -1)
+            else:
+                expected_result = a.value >> b
+                assert_felt_eq_num(res, expected_result)
+
+        def failure_function(a, b):
+            assert (b < 0) or (b >= RC_BOUND)
 
     smart_test.run(ThisTest, these_arguments)
 
@@ -480,18 +567,27 @@ def test__cond_neg(these_arguments):
         builtins = []
 
         def success_function(a, b, res):
-            if b == 1:
-                assert res == -a.value % SHIFT
+            if (b == 1) and (a.value != MIN_VAL):
+                assert_felt_eq_num(res, -a.value)
+            elif (b == 1) and (a.value == MIN_VAL):
+                assert_felt_eq_num(res, a.value)
             elif b == 0:
                 assert_felt_eq_num(res, a.value)
             else:
                 raise ValueError(
                     "uint_cond_neg_test: invalid input.  Argument `b` should be 0 or 1 but you gave me ",
-                    a.value,
+                    a,
                     b,
                 )
 
         def failure_function(a, b):
-            assert False, "Cairo run unexpectedly failed"
+            assert False
 
     smart_test.run(ThisTest, these_arguments)
+
+
+"""
+smart_test.run_tests = False
+test__cond_neg()
+int_cond_neg_diagnostic = felt_heuristic([(i, smart_test.invoke_LastTest_on(i)) for i in some_num_and_bool])
+"""

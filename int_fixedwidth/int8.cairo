@@ -1,4 +1,4 @@
-# Cairo library for arithmetic on signed {{BIT_LENGTH}}-bit integers
+# Cairo library for arithmetic on signed 8-bit integers
 
 from starkware.cairo.common.cairo_builtins import BitwiseBuiltin
 
@@ -14,11 +14,11 @@ from starkware.cairo.common.bitwise import bitwise_and, bitwise_or, bitwise_xor
 
 # The file should be parametric over values for BIT_LENGTH up to 125
 # To see where the limit of 125 comes from, see comments on `mul` in `template_for_uint.cairo` (not this file; the unsigned integer file).
-const BIT_LENGTH = {{ BIT_LENGTH }}
-const SHIFT = 2 ** {{ BIT_LENGTH_MINUS_ONE }}
+const BIT_LENGTH = 8
+const SHIFT = 2 ** 7
 
 # Gather everything into a namespace for easier import
-namespace Int{{ BIT_LENGTH }}:
+namespace Int8:
 
     # Represents a signed integer in the range [-SHIFT, SHIFT)
     # In other words, this is a numerical type with values in -SHIFT to SHIFT-1 inclusive.
@@ -282,8 +282,11 @@ namespace Int{{ BIT_LENGTH }}:
     # xor(127,-127)-> bitwise_xor(255,1)   = 254   ->   -2
 
 
-    {% macro bitwise_and_or_or(and_or_or_goes_here) -%}
-    func {{and_or_or_goes_here}}{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(a : Int, b : Int) -> (res : Int):
+    
+
+    # # bitwise OR 
+    # func or{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(a : Int, b : Int) -> (res : Int):
+    func or{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(a : Int, b : Int) -> (res : Int):
         alloc_locals
         local res_value : felt
         local a_offset : felt
@@ -300,7 +303,7 @@ namespace Int{{ BIT_LENGTH }}:
         else:
             b_offset = b.value
         end
-        let (res_value) = bitwise_{{and_or_or_goes_here}}(a_offset, b_offset)
+        let (res_value) = bitwise_or(a_offset, b_offset)
         let (must_shift) = is_le(SHIFT, res_value)
         if must_shift == 1:
             return (Int(res_value - (2 * SHIFT)))
@@ -308,15 +311,36 @@ namespace Int{{ BIT_LENGTH }}:
             return (Int(res_value))
         end
     end
-    {% endmacro %}
-
-    # # bitwise OR 
-    # func or{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(a : Int, b : Int) -> (res : Int):
-    {{bitwise_and_or_or("or")}}
+    
 
     # # bitwise AND 
     # func and{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(a : Int, b : Int) -> (res : Int):
-    {{bitwise_and_or_or("and")}}
+    func and{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(a : Int, b : Int) -> (res : Int):
+        alloc_locals
+        local res_value : felt
+        local a_offset : felt
+        local b_offset : felt
+        let (must_shift_a) = is_le(a.value, -1)  # are a or b negative?
+        let (must_shift_b) = is_le(b.value, -1)
+        if must_shift_a == 1:
+            a_offset = a.value + (2 * SHIFT)
+        else:
+            a_offset = a.value
+        end
+        if must_shift_b == 1:
+            b_offset = b.value + (2 * SHIFT)
+        else:
+            b_offset = b.value
+        end
+        let (res_value) = bitwise_and(a_offset, b_offset)
+        let (must_shift) = is_le(SHIFT, res_value)
+        if must_shift == 1:
+            return (Int(res_value - (2 * SHIFT)))
+        else:
+            return (Int(res_value))
+        end
+    end
+    
 
 
     # Computes the logical left shift of an int.
@@ -361,31 +385,30 @@ end
 
 # The code below should not be executed.  Its role is to reference the functions in the namespace above, to prevent the Cairo code optimiser from garbage-collecting the namespace's contents as dead code.
 # One might call the code below a "dead code dead code eliminator eliminator", if one were inclined to dry wit.
-func dead_code_dead_code_eliminator_eliminator_for_Int{{BIT_LENGTH}}_namespace{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}():
+func dead_code_dead_code_eliminator_eliminator_for_Int8_namespace{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}():
    alloc_locals
    local a : felt
    local b : felt
-   let num_a = Int{{BIT_LENGTH}}.Int(a)
-   let num_b = Int{{BIT_LENGTH}}.Int(b)
-   Int{{BIT_LENGTH}}.num_check{range_check_ptr=range_check_ptr}(num_a)
-   Int{{BIT_LENGTH}}.felt_abs{range_check_ptr=range_check_ptr}(a)
-   Int{{BIT_LENGTH}}.id(num_a)
-   Int{{BIT_LENGTH}}.add{range_check_ptr=range_check_ptr}(num_a, num_b)
-   Int{{BIT_LENGTH}}.sub{range_check_ptr=range_check_ptr}(num_a, num_b)
-   Int{{BIT_LENGTH}}.mul{range_check_ptr=range_check_ptr}(num_a, num_b)
-   Int{{BIT_LENGTH}}.div_rem{range_check_ptr=range_check_ptr}(num_a, num_b)
-   Int{{BIT_LENGTH}}.pow2{range_check_ptr=range_check_ptr}(num_a)
-   Int{{BIT_LENGTH}}.not(num_a)
-   Int{{BIT_LENGTH}}.neg(num_a)
-   Int{{BIT_LENGTH}}.cond_neg(num_a, b)
-   Int{{BIT_LENGTH}}.eq(num_a, num_b)
-   Int{{BIT_LENGTH}}.lt{range_check_ptr=range_check_ptr}(num_a, num_b)
-   Int{{BIT_LENGTH}}.le{range_check_ptr=range_check_ptr}(num_a, num_b)
-   Int{{BIT_LENGTH}}.xor{range_check_ptr=range_check_ptr, bitwise_ptr=bitwise_ptr}(num_a, num_b)
-   Int{{BIT_LENGTH}}.or{range_check_ptr=range_check_ptr, bitwise_ptr=bitwise_ptr}(num_a, num_b)
-   Int{{BIT_LENGTH}}.and{range_check_ptr=range_check_ptr, bitwise_ptr=bitwise_ptr}(num_a, num_b)
-   Int{{BIT_LENGTH}}.shl__slow{range_check_ptr=range_check_ptr}(num_a, b)
-   Int{{BIT_LENGTH}}.shr__slow{range_check_ptr=range_check_ptr}(num_a, b)
+   let num_a = Int8.Int(a)
+   let num_b = Int8.Int(b)
+   Int8.num_check{range_check_ptr=range_check_ptr}(num_a)
+   Int8.felt_abs{range_check_ptr=range_check_ptr}(a)
+   Int8.id(num_a)
+   Int8.add{range_check_ptr=range_check_ptr}(num_a, num_b)
+   Int8.sub{range_check_ptr=range_check_ptr}(num_a, num_b)
+   Int8.mul{range_check_ptr=range_check_ptr}(num_a, num_b)
+   Int8.div_rem{range_check_ptr=range_check_ptr}(num_a, num_b)
+   Int8.pow2{range_check_ptr=range_check_ptr}(num_a)
+   Int8.not(num_a)
+   Int8.neg(num_a)
+   Int8.cond_neg(num_a, b)
+   Int8.eq(num_a, num_b)
+   Int8.lt{range_check_ptr=range_check_ptr}(num_a, num_b)
+   Int8.le{range_check_ptr=range_check_ptr}(num_a, num_b)
+   Int8.xor{range_check_ptr=range_check_ptr, bitwise_ptr=bitwise_ptr}(num_a, num_b)
+   Int8.or{range_check_ptr=range_check_ptr, bitwise_ptr=bitwise_ptr}(num_a, num_b)
+   Int8.and{range_check_ptr=range_check_ptr, bitwise_ptr=bitwise_ptr}(num_a, num_b)
+   Int8.shl__slow{range_check_ptr=range_check_ptr}(num_a, b)
+   Int8.shr__slow{range_check_ptr=range_check_ptr}(num_a, b)
    return()
 end
-

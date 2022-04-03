@@ -1,5 +1,5 @@
-# The _Cairo bitwise integer library_ (cairo-bitwise-int v0.1.1)
-# The _Cairo smart test library_ (cairo-smart-test v0.1.1)
+# The _Cairo bitwise integer library_ (cairo-bitwise-int v0.2.0)
+# The _Cairo smart test library_ (cairo-smart-test v0.2.0)
 
 Author: Jamie Gabbay
 
@@ -9,7 +9,11 @@ The [Cairo Abstract Machine's](https://www.cairo-lang.org/) primitive notion of 
 
 This directory contains:
 
-* `cairo-bitwise-int`: a collection of Cairo libraries to _emulate_ signed and unsigned integer datatypes of various bit lengths (e.g. 8-bit unsigned integers, also known as 'bytes'), and
+* `cairo-bitwise-int`: a collection of Cairo libraries to _emulate_
+
+    * signed and unsigned integer datatypes of various bit lengths (e.g. 8-bit unsigned integers, also known as 'bytes'), and
+    * signed and unsigned unbounded integer datatypes.
+
 * `cairo-smart-test`: an automated unit- and property-based test suite.
 
 I am pleased to share this with the Cairo community, and feedback and suggestions are welcome.
@@ -39,13 +43,13 @@ This means that if you want an `int93.cairo` library, you can have one, by follo
 
 ### The instructions
 
-You'll need a working Cairo installation.  [Cairo install instructions are here](https://www.cairo-lang.org/docs/quickstart.html#installation) -- so do that first!  The rest of these instructions assume you're in a Cairo virtual environment.
+You'll need a working Cairo installation.  [Official Cairo install instructions are here](https://www.cairo-lang.org/docs/quickstart.html#installation) and [my own install script is below](#my-install) -- so do that first!  The rest of these instructions assume you're in a Cairo virtual environment.
 
 We'll also assume you're using a Linux system; YMMV on other systems but the overall idea should be the same.
 
 To set up:
 
-* Make sure you have `jinja2` and (optionally for testing) `hypothesis` installed in your Cairo virtual environment, e.g. by typing `pip3 install jinja2 hypothesis`.
+* Make sure you have `jinja2` and (optionally for testing) `hypothesis` installed in your Cairo virtual environment, e.g. by typing `pip3 install jinja2 pytest hypothesis`.
 * Execute the python3 file [`run-this-file-to-build-code-directory-from-template-directory.py`](https://github.com/bellissimogiorno/cairo-integer-types/blob/main/run-this-file-to-build-code-directory-from-template-directory.py) to build the [`code`](https://github.com/bellissimogiorno/cairo-integer-types/tree/main/code) directory using the templates in the [`templates`](https://github.com/bellissimogiorno/cairo-integer-types/tree/main/templates) directory.
 * (Optionally) Execute the bash file [`run_all_tests.sh`](https://github.com/bellissimogiorno/cairo-integer-types/blob/main/code/run_all_tests.sh) from inside the [`code`](https://github.com/bellissimogiorno/cairo-integer-types/tree/main/code) directory.
 
@@ -53,7 +57,7 @@ Let's say that again in code:
 
 ```
 source ./enter-enviroment.sh
-pip3 install jinja2 hypothesis
+pip3 install jinja2 pytest hypothesis
 python3 run-this-file-to-build-code-directory-from-template-directory.py
 cd code
 bash run_all_tests.sh
@@ -93,6 +97,33 @@ The Cairo bitwise integer library helps to bridge this gap with suitable library
 
 Seriously?  You do!  The code in this repo has been tested using a unit- and property-based test suite specifically designed to work well with Cairo.
 
+## My install
+
+This is what I type to get set up on a new machine.  Help yourself (but don't blame me if something goes wrong):
+
+```
+# Stuff we need to compile Python 3.7
+sudo apt install build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libsqlite3-dev libreadline-dev libffi-dev wget libbz2-dev
+# Download Python 3.7 and cd into directory
+wget https://www.python.org/ftp/python/3.7.13/Python-3.7.13.tgz
+tar xvzf Python-3.7.13.tgz
+cd Python-3.7.13
+# Configure compilation
+./configure --enable-optimizations
+# Make (8 core system)
+make -j 8
+# Install
+# IMPORTANT: altinstall means we don't overwrite your machine's native version of Python!
+sudo make altinstall
+
+# Create Python3.7 virtual environment
+python3.7 -m venv ~/cairo_venv-3.7
+# Jump into the venv
+source ~/cairo_venv-3.7/bin/activate
+# Install prerequisites to run cairo-bitwise-int and cairo-smart-test (works for Cairo 0.8)
+pip3 install jinja2 pytest pytest-reverse hypothesis cairo-lang black pytest-xdist[psutil]
+
+```
 
 ## Feedback and comments ...
 

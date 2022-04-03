@@ -13,8 +13,8 @@
 # Some key constants
 
 # File is parametric over values for BIT_LENGTH up to 128
-CAIRO_FILE_NAME = "uint{{ BIT_LENGTH }}.cairo"
-BIT_LENGTH = {{BIT_LENGTH}}
+CAIRO_FILE_NAME = "uint32.cairo"
+BIT_LENGTH = 32
 WORD_SIZE = 2 ** BIT_LENGTH  # MAX_VAL - MIN_VAL + 1
 SHIFT = 2 ** BIT_LENGTH
 MIN_VAL = 0
@@ -23,7 +23,7 @@ ALL_ONES = WORD_SIZE - 1  # e.g. if BIT_LENGTH = 8 then ALL_ONES = 255
 # The 128 in RC_BOUND below is fixed by the Cairo system
 RC_BOUND = 2 ** 128
 
-NAMESPACE = "Uint{{BIT_LENGTH}}"
+NAMESPACE = "Uint32"
 
 # Imports
 

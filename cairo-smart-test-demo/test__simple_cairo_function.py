@@ -79,7 +79,9 @@ def test__is_double(these_arguments):
 # Demo for test code (requires user interaction) 
 
 print()
-input("Let's view some test results.  Press any key to continue.")
+input("The file `simple_cairo_function.cairo` contains a plausible but incorrect Cairo function `is_double_uint5`.  Let's use cairo-smart-test to find the errors.\n\nFirst we'll do it the long way; then we'll show a one-liner.")
+print()
+input("(The long way!)\nLet's view some test results.  Press any key to continue.")
 print(
 """
 smart_test.run_tests = True 
@@ -123,6 +125,18 @@ print(smart_test.invoke_LastTest_on([32,32]))
 print()
 print("Perfect!  We've homed in on an error case and can now debug our (deliberately buggy) Cairo code.")
 
+print()
+print("(The one-liner!)  Most of the process above is packaged up in a one-line diagnostic command:")
+print("""
+smart_test.diagnose_test(test__is_double)
+""")
+input("Press any key to continue (there'll be a lot of output).")
+try:
+   smart_test.diagnose_test(test__is_double)
+except:
+    pass
+print()
+print("That's it: you can read the error cases off the output above and you're done.")
 print()
 print("If you invoked this code using `pytest -svrPA test__simple_cairo_function.py` then Hypothesis will now run the tests, detect the errors in the code, and return flow of control to you.")
 print("If you invoked this code using `python3 -i test__simple_cairo_function.py` then the demo is finished and flow of control will return to you.")
