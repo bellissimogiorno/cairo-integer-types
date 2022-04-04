@@ -21,11 +21,11 @@ I am pleased to share this with the Cairo community, and feedback and suggestion
 
 ## How to use the Cairo bitwise library off-the-shelf
 
-The [`code`](https://github.com/bellissimogiorno/cairo-integer-types/tree/main/code) directory contains prepared source files.  For example:
+The [`int_fixedwidth`](https://github.com/bellissimogiorno/cairo-integer-types/tree/main/int_fixedwidth) directory contains prepared source files.  For example:
 
-* [`uint8.cairo`](https://github.com/bellissimogiorno/cairo-integer-types/blob/main/code/uint8.cairo) is a library for unsigned 8-bit integers (i.e. "bytes").
-* [`uint32.cairo`](https://github.com/bellissimogiorno/cairo-integer-types/blob/main/code/uint32.cairo) is a library for unsigned 32-bit integers (i.e. "words").
-* [`int32.cairo`](https://github.com/bellissimogiorno/cairo-integer-types/blob/main/code/int32.cairo) is a library for signed 32-bit integers (i.e. "signed words").
+* [`uint8.cairo`](https://github.com/bellissimogiorno/cairo-integer-types/blob/main/int_fixedwidth/uint8.cairo) is a library for unsigned 8-bit integers (i.e. "bytes").
+* [`uint32.cairo`](https://github.com/bellissimogiorno/cairo-integer-types/blob/main/int_fixedwidth/uint32.cairo) is a library for unsigned 32-bit integers (i.e. "words").
+* [`int32.cairo`](https://github.com/bellissimogiorno/cairo-integer-types/blob/main/int_fixedwidth/int32.cairo) is a library for signed 32-bit integers (i.e. "signed words").
 
 Assuming you are writing Cairo code, You can import these libraries using [the usual Cairo library import mechanism](https://www.cairo-lang.org/docs/reference/syntax.html#library-imports).
 
@@ -34,7 +34,7 @@ Assuming you are writing Cairo code, You can import these libraries using [the u
 
 ### Templates and `BIT_LENGTH`
 
-The code is templated over a `BIT_LENGTH` parameter which may vary between 4 and 125.
+The fixedwidth integer code is templated over a `BIT_LENGTH` parameter which may vary between 4 and 125.
 
 * The templates are in the [`templates`](https://github.com/bellissimogiorno/cairo-integer-types/tree/main/templates) directory.
 * Generation of code from templates is controlled by the file `run-this-file-to-build-code-directory-from-template-directory.py`, which also contains a list of bit lengths to use.
@@ -50,8 +50,8 @@ We'll also assume you're using a Linux system; YMMV on other systems but the ove
 To set up:
 
 * Make sure you have `jinja2` and (optionally for testing) `hypothesis` installed in your Cairo virtual environment, e.g. by typing `pip3 install jinja2 pytest hypothesis`.
-* Execute the python3 file [`run-this-file-to-build-code-directory-from-template-directory.py`](https://github.com/bellissimogiorno/cairo-integer-types/blob/main/run-this-file-to-build-code-directory-from-template-directory.py) to build the [`code`](https://github.com/bellissimogiorno/cairo-integer-types/tree/main/code) directory using the templates in the [`templates`](https://github.com/bellissimogiorno/cairo-integer-types/tree/main/templates) directory.
-* (Optionally) Execute the bash file [`run_all_tests.sh`](https://github.com/bellissimogiorno/cairo-integer-types/blob/main/code/run_all_tests.sh) from inside the [`code`](https://github.com/bellissimogiorno/cairo-integer-types/tree/main/code) directory.
+* Execute the python3 file [`run-this-file-to-build-code-directory-from-template-directory.py`](https://github.com/bellissimogiorno/cairo-integer-types/blob/main/run-this-file-to-build-code-directory-from-template-directory.py) to build the [`int_fixedwidth`](https://github.com/bellissimogiorno/cairo-integer-types/tree/main/int_fixedwidth) directory using the templates in the [`templates`](https://github.com/bellissimogiorno/cairo-integer-types/tree/main/templates) directory.
+* (Optionally) Execute the bash file [`run_all_tests.sh`](https://github.com/bellissimogiorno/cairo-integer-types/blob/main/int_fixedwidth/run_all_tests.sh) from inside the [`int_fixedwidth`](https://github.com/bellissimogiorno/cairo-integer-types/tree/main/int_fixedwidth) directory.
 
 Let's say that again in code:
 
@@ -59,14 +59,17 @@ Let's say that again in code:
 source ./enter-enviroment.sh
 pip3 install jinja2 pytest hypothesis
 python3 run-this-file-to-build-code-directory-from-template-directory.py
-cd code
+cd int_fixedwidth
 bash run_all_tests.sh
 ```
 
 For custom bit lengths, just edit the list of `bit_lengths` in [`run-this-file-to-build-code-directory-from-template-directory.py`](https://github.com/bellissimogiorno/cairo-integer-types/blob/main/run-this-file-to-build-code-directory-from-template-directory.py) ([direct link to line, correct at time of writing](https://github.com/bellissimogiorno/cairo-integer-types/blob/main/run-this-file-to-build-code-directory-from-template-directory.py#L14)).
 
-That's it!  The bitwise integer library files should now be in your `code` directory and (optionally) fully tested.
+That's it!  The bitwise integer library files should now be in your `int_fixedwidth` directory and (optionally) fully tested.
 
+### Unbounded integers
+
+Unbounded signed and unsigned integers are also supported.  See the [`int_unbounded` directory](https://github.com/bellissimogiorno/cairo-integer-types/blob/main/int_unbounded) directory.
 
 ## The Cairo smart test suite
 

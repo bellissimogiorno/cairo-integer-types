@@ -1,15 +1,7 @@
-from starkware.cairo.common.cairo_builtins import BitwiseBuiltin
-
-# https://github.com/starkware-libs/cairo-lang/blob/master/src/starkware/cairo/common/alloc.cairo
-from starkware.cairo.common.alloc import alloc
 # https://github.com/starkware-libs/cairo-lang/blob/master/src/starkware/cairo/common/math.cairo
 from starkware.cairo.common.math import assert_nn_le, assert_not_zero, assert_in_range
 # https://github.com/starkware-libs/cairo-lang/blob/master/src/starkware/cairo/common/math_cmp.cairo
 from starkware.cairo.common.math_cmp import is_nn
-# https://github.com/starkware-libs/cairo-lang/blob/master/src/starkware/cairo/common/pow.cairo
-# from starkware.cairo.common.pow import pow
-# https://github.com/starkware-libs/cairo-lang/blob/master/src/starkware/cairo/common/bitwise.cairo
-# from starkware.cairo.common.bitwise import bitwise_and, bitwise_or, bitwise_xor
 
 # Some constants
 # The file should be parametric over values for BIT_LENGTH up to 125

@@ -1,16 +1,3 @@
-# from starkware.cairo.common.cairo_builtins import BitwiseBuiltin
-
-# https://github.com/starkware-libs/cairo-lang/blob/master/src/starkware/cairo/common/alloc.cairo
-# from starkware.cairo.common.alloc import alloc
-# https://github.com/starkware-libs/cairo-lang/blob/master/src/starkware/cairo/common/math.cairo
-# from starkware.cairo.common.math import assert_le, assert_nn_le, assert_not_zero, assert_in_range
-# https://github.com/starkware-libs/cairo-lang/blob/master/src/starkware/cairo/common/math_cmp.cairo
-# from starkware.cairo.common.math_cmp import is_nn, is_le, is_in_range
-# https://github.com/starkware-libs/cairo-lang/blob/master/src/starkware/cairo/common/pow.cairo
-# from starkware.cairo.common.pow import pow
-# https://github.com/starkware-libs/cairo-lang/blob/master/src/starkware/cairo/common/bitwise.cairo
-# from starkware.cairo.common.bitwise import bitwise_and, bitwise_or, bitwise_xor
-
 # import biguint namespace from biguint file
 from biguint import biguint as biguint
 
@@ -202,4 +189,3 @@ func dead_code_dead_code_eliminator_eliminator_for_bigint_namespace{range_check_
     bigint.div(num_a, num_b)
     return ()
 end
-
