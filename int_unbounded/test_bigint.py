@@ -18,24 +18,6 @@ import os
 from itertools import takewhile
 from typing import List
 
-# TESTING (PYTEST AND HYPOTHESIS)
-import pytest
-from hypothesis import HealthCheck, event, example
-from hypothesis import given as randomly_choose
-from hypothesis import note, settings
-from hypothesis import strategies as st
-
-# IMPORT THE SMART TEST FRAMEWORK
-from cairo_smart_test_framework import (
-    AbstractCairoTestClass,
-    CairoTest,
-    SmartTest,
-    chain,
-    felt_heuristic,
-    unit_tests_on,
-    DEFAULT_PRIME,
-)
-
 
 # IMPORT SOME CONSTANTS
 from biguint_tools import ALL_ONES  # SHIFT-1
@@ -52,6 +34,7 @@ from biguint_tools import (
     EON_MOD_PRIME,
 )  # EON % DEFAULT_PRIME.  Following starkware.cairo.lang.cairo_constants.py, DEFAULT_PRIME = 2 ** 251 + 17 * 2 ** 192 + 1, so EON_MOD_PRIME = 2 ** 251 + 17 * 2 ** 192
 from biguint_tools import (
+    DEFAULT_PRIME,
     RC_BOUND,
 )  # RC_BOUND is hard-wired to 2 ** 128 by the ambient Cairo system
 
@@ -71,18 +54,39 @@ from biguint_tools import (
     strip_eon,
 )
 
+# TESTING (PYTEST AND HYPOTHESIS)
+import pytest
+from hypothesis import HealthCheck, event, example
+from hypothesis import given as randomly_choose
+from hypothesis import note, settings
+from hypothesis import strategies as st
+
+# IMPORT THE SMART TEST FRAMEWORK
+# `chain` maps [f1, f2, ..., fn] to "do f1, then f2, ..., then fn".
+from cairotest import (
+    AbstractCairoTestClass,
+    CairoTest,
+    SmartTest,
+    chain,
+    felt_heuristic,
+    unit_tests_on,
+    compile_cairo_files,
+)
+
 
 # Some key constants
 
-CAIRO_FILE_NAME = "bigint.cairo"
 NAMESPACE = "bigint."
-
-# Load the Cairo file, compile it, and store this compiled code in a so-called `smart test object`.
-smart_test = SmartTest(filename=CAIRO_FILE_NAME)
-
-
+CAIRO_FILE = os.path.join(os.path.dirname(__file__), "bigint.cairo")
+COMPILED_CAIRO_FILE = compile_cairo_files([CAIRO_FILE], prime=DEFAULT_PRIME)
+# Wrap the compiled code in a smart test object.
+smart_test = SmartTest(compiled_file=COMPILED_CAIRO_FILE)
 BigInt = smart_test.struct_factory.structs.bigint.BigInt
 
+# Check that the constants used here match up with the corresponding constants in the Cairo source.
+# If not, then something might be not right!
+assert smart_test.test_object.program.get_const("BIT_LENGTH") == BIT_LENGTH
+assert smart_test.test_object.program.get_const("SHIFT") == SHIFT
 
 def mk_BigInt(a):
     return BigInt(*a)
@@ -95,10 +99,6 @@ def peek_one_bigint_from(memory, sign, ptr):
     )
 
 
-# Check that the constants used here match up with the corresponding constants in the Cairo source.
-# If not, then something might be not right!
-assert smart_test.test_object.program.get_const("BIT_LENGTH") == BIT_LENGTH
-assert smart_test.test_object.program.get_const("SHIFT") == SHIFT
 
 
 
@@ -265,7 +265,7 @@ def test__id(a_bigint):
         def failure_function(a_in):
             assert False, "Cairo run unexpectedly failed"
 
-    smart_test.run(ThisTest, (a_bigint,))
+    smart_test.run(ThisTest, [a_bigint])
 
 
 @unit_tests_on(some_bigint)

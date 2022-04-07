@@ -6,7 +6,7 @@ from biguint import biguint as biguint
 const BIT_LENGTH = 125
 const SHIFT = 2 ** 125
 const EON = -1
-# const NEG = -2
+
 
 # Gather everything into a namespace for easier import
 namespace bigint:

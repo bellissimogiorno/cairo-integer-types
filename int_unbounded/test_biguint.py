@@ -18,19 +18,28 @@ import os
 from itertools import takewhile
 from typing import List
 
-import pytest
 
-# IMPORT SOME UTILITY FUNCTIONS
 # IMPORT SOME CONSTANTS
 from biguint_tools import ALL_ONES  # SHIFT-1
 from biguint_tools import MAX_VAL  # SHIFT-1
 from biguint_tools import MIN_VAL  # 0
 from biguint_tools import SHIFT  # 2 ** BIT_LENGTH
-from biguint_tools import (  # File is parametric over BIT_LENGTH, which may range from 4 to 125.  Typically we would use 125, because it's more space-efficient. If you find that BIT_LENGTH is set to a smaller number, like 8, then this may have been for testing and somebody (= me) may have forgotten to set it back to 125.; Btw, why not use the full size of a felt (currently just a little larger than 2^251)?  Because we can multiply two 125-bit numbers and not overflow.; End-Of-Number marker.  Currently set to -1 (correct at time of writing).; EON % DEFAULT_PRIME.  Following starkware.cairo.lang.cairo_constants.py, DEFAULT_PRIME = 2 ** 251 + 17 * 2 ** 192 + 1, so EON_MOD_PRIME = 2 ** 251 + 17 * 2 ** 192.; RC_BOUND is hard-wired to 2 ** 128 by the ambient Cairo system
+from biguint_tools import (
     BIT_LENGTH,
+)  # File is parametric over BIT_LENGTH, which may range from 4 to 125.  Typically we would use 125, because it's more space-efficient. If you find that BIT_LENGTH is set to a smaller number, like 8, then this may have been for testing and somebody (= me) may have forgotten to set it back to 125.; Btw, why not use the full size of a felt (currently just a little larger than 2^251)?  Because we can multiply two 125-bit numbers and not overflow.
+from biguint_tools import (
     EON,
+)  # End-Of-Number marker.  Currently set to -1 (correct at time of writing).
+from biguint_tools import (
     EON_MOD_PRIME,
+)  # EON % DEFAULT_PRIME.  Following starkware.cairo.lang.cairo_constants.py, DEFAULT_PRIME = 2 ** 251 + 17 * 2 ** 192 + 1, so EON_MOD_PRIME = 2 ** 251 + 17 * 2 ** 192
+from biguint_tools import (
+    DEFAULT_PRIME,
     RC_BOUND,
+)  # RC_BOUND is hard-wired to 2 ** 128 by the ambient Cairo system
+
+# IMPORT SOME UTILITY FUNCTIONS
+from biguint_tools import (
     add_eon,
     int_to_num,
     is_num,
@@ -41,32 +50,35 @@ from biguint_tools import (  # File is parametric over BIT_LENGTH, which may ran
     peek_one_num_from,
     some_num,
     strip_eon,
-    DEFAULT_PRIME,
 )
+
+# TESTING (PYTEST AND HYPOTHESIS)
+import pytest
+from hypothesis import HealthCheck, event, example
+from hypothesis import given as randomly_choose
+from hypothesis import note, settings
+from hypothesis import strategies as st
 
 # IMPORT THE SMART TEST FRAMEWORK
 # `chain` maps [f1, f2, ..., fn] to "do f1, then f2, ..., then fn".
-from cairo_smart_test_framework import (
+from cairotest import (
     AbstractCairoTestClass,
     CairoTest,
     SmartTest,
     chain,
     felt_heuristic,
     unit_tests_on,
+    compile_cairo_files,
 )
-from hypothesis import HealthCheck, event, example
-from hypothesis import given as randomly_choose
-from hypothesis import note, settings
-from hypothesis import strategies as st
 
 
 # Some key constants
 
-CAIRO_FILE_NAME = "biguint.cairo"
 NAMESPACE = "biguint."
-
-# Load the Cairo file, compile it, and store this compiled code in a so-called `smart test object`.
-smart_test = SmartTest(filename=CAIRO_FILE_NAME)
+CAIRO_FILE = os.path.join(os.path.dirname(__file__), "biguint.cairo")
+COMPILED_CAIRO_FILE = compile_cairo_files([CAIRO_FILE], prime=DEFAULT_PRIME)
+# Wrap the compiled code in a smart test object.
+smart_test = SmartTest(compiled_file=COMPILED_CAIRO_FILE)
 BigUint = smart_test.struct_factory.structs.biguint.BigUint
 
 # Check that the constants used here match up with the corresponding constants in the Cairo source.

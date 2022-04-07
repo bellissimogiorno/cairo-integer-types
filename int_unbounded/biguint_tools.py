@@ -34,7 +34,7 @@ def strip_eon(l):
 
 # SOME NUM INSTANCES (USEFUL FOR TESTING)
 
-# Our core numerical type `num` is a list of integers in [0, SHIFT-1), that is not terminated by 0.
+# Our core numerical type `num` is a list of integers in [0, SHIFT-1), that is not terminated by 0, followed by an end-of-number marker EON.
 some_num = [
     add_eon(a)
     for a in [
@@ -72,7 +72,7 @@ def read_num_from_iterator(iterator):
     return add_eon(list(takewhile(lambda i: i != EON_MOD_PRIME, iterator)))
 
 
-# Peek from the runner's VM memory (treated as an iterator) until we reach the biguint EON (end-of-number) marker.
+# Peek from the runner's VM memory (treated as an iterator) until we reach the EON (end-of-number) marker.
 def peek_one_num_from(memory, pointer):
     return read_num_from_iterator(iterator=memory_iterator_from(memory, pointer))
 
@@ -88,7 +88,7 @@ def is_num(a):
     )
 
 
-# int to biguint
+# int to num 
 def int_to_num(a):
     acc = []
     while a != 0:
@@ -113,8 +113,8 @@ def num_add(a, b):
 
 
 # Slow but clean num subtraction, for testing and Cairo hints
-# If a>=b returns (1, a-b, 1)
-# If a<b returns (-1, b-a)
+# If a >= b returns ( 1, a-b)
+# If a  < b returns (-1, b-a)
 def num_sub(a, b):
     res = num_to_int(a) - num_to_int(b)
     if res >= 0:

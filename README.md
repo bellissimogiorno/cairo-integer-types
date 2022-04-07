@@ -1,5 +1,4 @@
-# The _Cairo bitwise integer library_ (cairo-bitwise-int v0.2.0)
-# The _Cairo smart test library_ (cairo-smart-test v0.2.0)
+# The _Cairo bitwise integer library_ (cairo-bitwise-int v0.3.0)
 
 Author: Jamie Gabbay
 
@@ -7,19 +6,18 @@ Author: Jamie Gabbay
 
 The [Cairo Abstract Machine's](https://www.cairo-lang.org/) primitive notion of counting is a [finite field](https://en.wikipedia.org/wiki/Finite_field) over a prime of size approximately 2^251.  This differs significantly from that of a typical Intel or ARM chip, which is typically a 64-bit integer bitwise representation.
 
-This directory contains:
-
-* `cairo-bitwise-int`: a collection of Cairo libraries to _emulate_
+This directory contains `cairo-bitwise-int`, a collection of Cairo libraries to _emulate_
 
     * signed and unsigned integer datatypes of various bit lengths (e.g. 8-bit unsigned integers, also known as 'bytes'), and
     * signed and unsigned unbounded integer datatypes.
 
-* `cairo-smart-test`: an automated unit- and property-based test suite.
-
 I am pleased to share this with the Cairo community, and feedback and suggestions are welcome.
 
+This code has been tested using `cairotest` ([pip](https://pypi.org/project/cairotest/) | [GitHub](https://github.com/bellissimogiorno/cairotest)), an automated unit- and property-based test suite.
 
-## How to use the Cairo bitwise library off-the-shelf
+## How to use the Cairo bitwise library
+
+### Contents of this library
 
 The [`int_fixedwidth`](https://github.com/bellissimogiorno/cairo-integer-types/tree/main/int_fixedwidth) directory contains prepared source files.  For example:
 
@@ -28,6 +26,15 @@ The [`int_fixedwidth`](https://github.com/bellissimogiorno/cairo-integer-types/t
 * [`int32.cairo`](https://github.com/bellissimogiorno/cairo-integer-types/blob/main/int_fixedwidth/int32.cairo) is a library for signed 32-bit integers (i.e. "signed words").
 
 Assuming you are writing Cairo code, You can import these libraries using [the usual Cairo library import mechanism](https://www.cairo-lang.org/docs/reference/syntax.html#library-imports).
+
+### Install
+
+You'll need a working Cairo installation.
+
+* [Official Cairo install instructions are here](https://www.cairo-lang.org/docs/quickstart.html#installation) and
+* [my personal install script is below](#my-install)
+
+-- so do that first!  The rest of these instructions assume you're in a Cairo virtual environment.  We'll also assume you're using a Linux system; YMMV on other systems but the overall idea should be the same.
 
 
 ## How to customise the library
@@ -39,13 +46,9 @@ The fixedwidth integer code is templated over a `BIT_LENGTH` parameter which may
 * The templates are in the [`templates`](https://github.com/bellissimogiorno/cairo-integer-types/tree/main/templates) directory.
 * Generation of code from templates is controlled by the file `run-this-file-to-build-code-directory-from-template-directory.py`, which also contains a list of bit lengths to use.
 
-This means that if you want an `int93.cairo` library, you can have one, by following the instructions below.
+This means that if you want an `int93.cairo` library, you can have one, by following the library compilation and testing instructions below.
 
-### The instructions
-
-You'll need a working Cairo installation.  [Official Cairo install instructions are here](https://www.cairo-lang.org/docs/quickstart.html#installation) and [my own install script is below](#my-install) -- so do that first!  The rest of these instructions assume you're in a Cairo virtual environment.
-
-We'll also assume you're using a Linux system; YMMV on other systems but the overall idea should be the same.
+### Library compilation and testing
 
 To set up:
 
@@ -57,7 +60,7 @@ Let's say that again in code:
 
 ```
 source ./enter-enviroment.sh
-pip3 install jinja2 pytest hypothesis
+pip3 install jinja2 pytest hypothesis cairotest
 python3 run-this-file-to-build-code-directory-from-template-directory.py
 cd int_fixedwidth
 bash run_all_tests.sh
@@ -70,18 +73,6 @@ That's it!  The bitwise integer library files should now be in your `int_fixedwi
 ### Unbounded integers
 
 Unbounded signed and unsigned integers are also supported.  See the [`int_unbounded` directory](https://github.com/bellissimogiorno/cairo-integer-types/blob/main/int_unbounded) directory.
-
-## The Cairo smart test suite
-
-The unit- and property-based test suite is in the file [`templates/cairo_smart_test_framework.py`](https://github.com/bellissimogiorno/cairo-integer-types/blob/main/templates/cairo_smart_test_framework.py).  The smart test suite is applied here to the bitwise library, but it exists independently and provides a comprehensive test framework for Cairo code.
-
-You can use the smart test suite in your own Cairo development just by copying the [`templates/cairo_smart_test_framework.py`](https://github.com/bellissimogiorno/cairo-integer-types/blob/main/templates/cairo_smart_test_framework.py) file into your development and using it, following
-
-* the documentation in that file, and
-* the example usages in [`templates/template_for_test_int.py`](https://github.com/bellissimogiorno/cairo-integer-types/blob/main/templates/template_for_test_int.py), and
-* a systematic demonstration of the test suite on a (deliberately buggy!) Cairo code file in the directory [`cairo-smart-test-demo`](https://github.com/bellissimogiorno/cairo-integer-types/blob/main/cairo-smart-test-demo).
-
-Usage is designed to be straightforward but I'm happy to answer questions and act on feedback.
 
 ## Why do we need a Cairo bitwise integer library?
 
@@ -96,17 +87,17 @@ This sets up a representational mismatch between Cairo and bitwise-based models 
 
 The Cairo bitwise integer library helps to bridge this gap with suitable library emulations of "bitwise-flavoured" datatypes for numerical computations -- the ones you're probably used to, such as "64-bit unsigned integers" (see [`code/uint64.cairo`](https://github.com/bellissimogiorno/cairo-integer-types/blob/main/code/uint64.cairo)).
 
-## Why do we need a Cairo test framework?
-
-Seriously?  You do!  The code in this repo has been tested using a unit- and property-based test suite specifically designed to work well with Cairo.
 
 ## My install
 
-This is what I type to get set up on a new machine.  Help yourself (but don't blame me if something goes wrong):
+This is what I type to get set up on a new machine running Debian linux.  Help yourself (but don't blame me if something goes wrong):
 
 ```
+# Make sure the system's up-to-date
+sudo apt update
+sudo apt upgrade
 # Stuff we need to compile Python 3.7
-sudo apt install build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libsqlite3-dev libreadline-dev libffi-dev wget libbz2-dev
+sudo apt install build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libsqlite3-dev libreadline-dev libffi-dev wget libbz2-dev libgmp-dev
 # Download Python 3.7 and cd into directory
 wget https://www.python.org/ftp/python/3.7.13/Python-3.7.13.tgz
 tar xvzf Python-3.7.13.tgz
@@ -124,8 +115,7 @@ python3.7 -m venv ~/cairo_venv-3.7
 # Jump into the venv
 source ~/cairo_venv-3.7/bin/activate
 # Install prerequisites to run cairo-bitwise-int and cairo-smart-test (works for Cairo 0.8)
-pip3 install jinja2 pytest pytest-reverse hypothesis cairo-lang black pytest-xdist[psutil]
-
+pip3 install jinja2 pytest pytest-reverse hypothesis cairo-lang cairotest black pytest-xdist[psutil]
 ```
 
 ## Feedback and comments ...

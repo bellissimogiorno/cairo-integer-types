@@ -14,6 +14,7 @@
 
 # File is parametric over values for BIT_LENGTH up to 128
 CAIRO_FILE_NAME = "int4.cairo"
+NAMESPACE = "Int4"
 BIT_LENGTH = 4
 WORD_SIZE = 2 ** BIT_LENGTH  # MAX_VAL - MIN_VAL + 1
 SHIFT = 2 ** (BIT_LENGTH - 1)
@@ -23,7 +24,6 @@ ALL_ONES = WORD_SIZE - 1  # e.g. if BIT_LENGTH = 8 then ALL_ONES = 255
 # The 128 in RC_BOUND below is fixed by the Cairo system
 RC_BOUND = 2 ** 128
 
-NAMESPACE = "Int4"
 
 # Imports
 
@@ -31,12 +31,13 @@ import os
 from typing import List
 
 import pytest
-from cairo_smart_test_framework import (
+from cairotest import (
     AbstractCairoTestClass,
     CairoTest,
     SmartTest,
     felt_heuristic,
     unit_tests_on,
+    compile_cairo_files,
 )
 from hypothesis import HealthCheck, event
 from hypothesis import given as randomly_choose
@@ -48,13 +49,11 @@ from starkware.cairo.lang.compiler.cairo_compile import compile_cairo_files
 from starkware.cairo.lang.compiler.program import Program
 from starkware.starknet.public.abi import ADDR_BOUND, MAX_STORAGE_ITEM_SIZE
 
-## Load the Cairo file, compile it, and store this compiled code in a so-called `smart test object`.
-# CAIRO_FILE = os.path.join(os.path.dirname(__file__), CAIRO_FILE_NAME)
-## Create a test object for the compiled Cario
-# test_object = CairoTest(compile_cairo_files([CAIRO_FILE], prime=DEFAULT_PRIME))
-## Wrap this in the smart test infrastructure for convenient use both in hypothesis and in the repl
-# smart_test = SmartTest(test_object = test_object)
-smart_test = SmartTest(filename=CAIRO_FILE_NAME)
+
+CAIRO_FILE = os.path.join(os.path.dirname(__file__), CAIRO_FILE_NAME)
+COMPILED_CAIRO_FILE = compile_cairo_files([CAIRO_FILE], prime=DEFAULT_PRIME)
+# Wrap the compiled code in a smart test object.
+smart_test = SmartTest(compiled_file=COMPILED_CAIRO_FILE)
 # Constructor for Int datatype
 Int = getattr(smart_test.struct_factory.structs, NAMESPACE).Int
 
