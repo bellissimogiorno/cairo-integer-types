@@ -71,9 +71,8 @@ def assert_felt_eq_num(a, b):
 
 # Datatypes
 
-## "Some" inputs for unit tests.  Data is always a list of tuples (even if tuple is 1-ary)
+## "Some" inputs for unit tests.  
 
-# We need `list` here not because `map` is lazy, but because the product of `map` is consumed on first evaluation.
 some_num = [Uint(a) for a in [ 
             # some small numbers
             0,

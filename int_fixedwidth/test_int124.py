@@ -85,7 +85,7 @@ def assert_felt_eq_num(a, b):
 
 # Datatypes
 
-## "Some" inputs for unit tests.  Data is always a list of tuples (even if tuple is 1-ary)
+## "Some" inputs for unit tests.
 
 # Note: the Cairo abstract machine responds to negative inputs (at least if they are not too large -- I haven't tested the general case) by taking them modulo DEFAULT_PRIME
 some_num = [Int(a) for a in [ 
