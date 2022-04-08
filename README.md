@@ -8,8 +8,8 @@ The [Cairo Abstract Machine's](https://www.cairo-lang.org/) primitive notion of 
 
 This directory contains `cairo-bitwise-int`, a collection of Cairo libraries to _emulate_
 
-    * signed and unsigned integer datatypes of various bit lengths (e.g. 8-bit unsigned integers, also known as 'bytes'), and
-    * signed and unsigned unbounded integer datatypes.
+* signed and unsigned integer datatypes of various bit lengths (e.g. 8-bit unsigned integers, also known as 'bytes'), and
+* signed and unsigned unbounded integer datatypes.
 
 I am pleased to share this with the Cairo community, and feedback and suggestions are welcome.
 
