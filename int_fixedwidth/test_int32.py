@@ -16,13 +16,13 @@
 CAIRO_FILE_NAME = "int32.cairo"
 NAMESPACE = "Int32"
 BIT_LENGTH = 32
-WORD_SIZE = 2 ** BIT_LENGTH  # MAX_VAL - MIN_VAL + 1
+WORD_SIZE = 2**BIT_LENGTH  # MAX_VAL - MIN_VAL + 1
 SHIFT = 2 ** (BIT_LENGTH - 1)
 MIN_VAL = -SHIFT
 MAX_VAL = SHIFT - 1
 ALL_ONES = WORD_SIZE - 1  # e.g. if BIT_LENGTH = 8 then ALL_ONES = 255
 # The 128 in RC_BOUND below is fixed by the Cairo system
-RC_BOUND = 2 ** 128
+RC_BOUND = 2**128
 
 
 # Imports
@@ -88,44 +88,61 @@ def assert_felt_eq_num(a, b):
 ## "Some" inputs for unit tests.
 
 # Note: the Cairo abstract machine responds to negative inputs (at least if they are not too large -- I haven't tested the general case) by taking them modulo DEFAULT_PRIME
-some_num = [Int(a) for a in [ 
-            # some small numbers
-            0,
-            1,
-            -1,
-            2,
-            -2,
-            3,
-            -3,
-            # good for testing pow2 and shl
-            BIT_LENGTH - 1,
-            BIT_LENGTH - 2,
-            BIT_LENGTH,
-            BIT_LENGTH + 1,
-            # some big numbers
-            MAX_VAL,
-            MAX_VAL - 1,
-            MAX_VAL - 2,
-            # some small numbers
-            MIN_VAL,
-            MIN_VAL + 1,
-            MIN_VAL + 2,
-            # some half-way numbers (by division)
-            SHIFT // 2,
-            (SHIFT // 2) - 1,
-            (SHIFT // 2) + 1,
-            # some half-way numbers (by sqrt)
-            2 ** (BIT_LENGTH // 2),
-            (2 ** (BIT_LENGTH // 2)) - 1,
-        ]]
+some_num = [
+    Int(a)
+    for a in [
+        # some small numbers
+        0,
+        1,
+        -1,
+        2,
+        -2,
+        3,
+        -3,
+        # good for testing pow2 and shl
+        BIT_LENGTH - 1,
+        BIT_LENGTH - 2,
+        BIT_LENGTH,
+        BIT_LENGTH + 1,
+        # some big numbers
+        MAX_VAL,
+        MAX_VAL - 1,
+        MAX_VAL - 2,
+        # some small numbers
+        MIN_VAL,
+        MIN_VAL + 1,
+        MIN_VAL + 2,
+        # some half-way numbers (by division)
+        SHIFT // 2,
+        (SHIFT // 2) - 1,
+        (SHIFT // 2) + 1,
+        # some half-way numbers (by sqrt)
+        2 ** (BIT_LENGTH // 2),
+        (2 ** (BIT_LENGTH // 2)) - 1,
+    ]
+]
 some_num_and_bool = [(a, b) for a in some_num for b in [0, 1]]  # linear length!
 # some_num_and_felt is optimised to test shl and shr
-some_num_and_felt = [(a, b) for a in some_num for b in [0, 1, 2, 3, 4, BIT_LENGTH // 2, BIT_LENGTH - 1, BIT_LENGTH, BIT_LENGTH + 1, BIT_LENGTH * 2]] 
+some_num_and_felt = [
+    (a, b)
+    for a in some_num
+    for b in [
+        0,
+        1,
+        2,
+        3,
+        4,
+        BIT_LENGTH // 2,
+        BIT_LENGTH - 1,
+        BIT_LENGTH,
+        BIT_LENGTH + 1,
+        BIT_LENGTH * 2,
+    ]
+]
 some_num_pair = [(a, b) for a in some_num for b in some_num]  # quadratic length!
 
 
 ## "Arbitrary" inputs for property-based tests.
-## Data is always a list of tuples (even if tuple is 1-ary)
 
 arbitrary_num = st.builds(Int, st.integers(min_value=MIN_VAL, max_value=MAX_VAL))
 arbitrary_bool = st.integers(
@@ -143,16 +160,16 @@ arbitrary_num_and_felt = st.tuples(arbitrary_num, arbitrary_felt)
 ## "Some" and "Arbitrary" inputs designed for checking range-checks
 
 some_num_possibly_out_of_bounds = some_num + [Int(MAX_VAL + 1), Int(MIN_VAL - 1)]
-arbitrary_num_possibly_out_of_bounds = st.builds(Int, st.integers(
+arbitrary_num_possibly_out_of_bounds = st.builds(
+    Int,
+    st.integers(
         (-RC_BOUND) + 1,  # inclusive left bound
         RC_BOUND,  # exclusive right bound
-    )
+    ),
 )
 
 
 # The tests themselves
-
-
 
 
 ####################### Tests on functions taking a single num not necessarily in bounds
@@ -204,7 +221,6 @@ class ExpectsSingleNum(AbstractCairoTestClass):
     number_of_return_values = 1
 
 
-
 @unit_tests_on(some_num)
 @randomly_choose(arbitrary_num)
 def test__id(these_arguments):
@@ -212,7 +228,7 @@ def test__id(these_arguments):
         func_name = NAMESPACE + ".id"
         builtins = []
 
-        # if a.value = -1 then we expect res = 1 + DEFAULT_PRIME 
+        # if a.value = -1 then we expect res = 1 + DEFAULT_PRIME
         def success_function(a, res):
             assert_felt_eq_num(res, a.value)
 
@@ -276,7 +292,7 @@ def test__pow2(these_arguments):
         # 2**a % 2**(BIT_LENGTH-1)
         def success_function(a, res):
             if 0 <= a.value <= BIT_LENGTH - 2:
-                assert res == 2 ** a.value
+                assert res == 2**a.value
             else:
                 assert res == 0
 
@@ -343,7 +359,9 @@ def test__mul(these_arguments):
             assert -SHIFT <= felt_to_num(overflow) < SHIFT
             assert -SHIFT <= felt_to_num(res) < SHIFT
             # We can't use assert_felt_eq_num because res + overflow * (2 * SHIFT) might not be in [0, DEFAULT_PRIME).  So we do it by hand:
-            assert mod_default_prime(res + overflow * (2 * SHIFT) - a.value * b.value) == 0
+            assert (
+                mod_default_prime(res + overflow * (2 * SHIFT) - a.value * b.value) == 0
+            )
 
     smart_test.run(ThisTest, these_arguments)
 
@@ -409,7 +427,9 @@ def test__eq(these_arguments):
         builtins = []
 
         def success_function(a, b, res):
-            assert (res == 1 and a.value == b.value) or (res == 0 and a.value != b.value)
+            assert (res == 1 and a.value == b.value) or (
+                res == 0 and a.value != b.value
+            )
 
     smart_test.run(ThisTest, these_arguments)
 

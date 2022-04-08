@@ -16,13 +16,13 @@
 CAIRO_FILE_NAME = "uint32.cairo"
 NAMESPACE = "Uint32"
 BIT_LENGTH = 32
-WORD_SIZE = 2 ** BIT_LENGTH  # MAX_VAL - MIN_VAL + 1
-SHIFT = 2 ** BIT_LENGTH
+WORD_SIZE = 2**BIT_LENGTH  # MAX_VAL - MIN_VAL + 1
+SHIFT = 2**BIT_LENGTH
 MIN_VAL = 0
 MAX_VAL = SHIFT - 1
 ALL_ONES = WORD_SIZE - 1  # e.g. if BIT_LENGTH = 8 then ALL_ONES = 255
 # The 128 in RC_BOUND below is fixed by the Cairo system
-RC_BOUND = 2 ** 128
+RC_BOUND = 2**128
 
 
 # Imports
@@ -71,39 +71,56 @@ def assert_felt_eq_num(a, b):
 
 # Datatypes
 
-## "Some" inputs for unit tests.  
+## "Some" inputs for unit tests.
 
-some_num = [Uint(a) for a in [ 
-            # some small numbers
-            0,
-            1,
-            2,
-            3,
-            # good for testing pow2 and shl
-            BIT_LENGTH - 1,
-            BIT_LENGTH - 2,
-            BIT_LENGTH,
-            BIT_LENGTH + 1,
-            # some big numbers
-            MAX_VAL,
-            MAX_VAL - 1,
-            MAX_VAL - 2,
-            # some half-way numbers (by division)
-            SHIFT // 2,
-            (SHIFT // 2) - 1,
-            (SHIFT // 2) + 1,
-            # some half-way numbers (by sqrt)
-            2 ** (BIT_LENGTH // 2),
-            (2 ** (BIT_LENGTH // 2)) - 1,
-        ]]
+some_num = [
+    Uint(a)
+    for a in [
+        # some small numbers
+        0,
+        1,
+        2,
+        3,
+        # good for testing pow2 and shl
+        BIT_LENGTH - 1,
+        BIT_LENGTH - 2,
+        BIT_LENGTH,
+        BIT_LENGTH + 1,
+        # some big numbers
+        MAX_VAL,
+        MAX_VAL - 1,
+        MAX_VAL - 2,
+        # some half-way numbers (by division)
+        SHIFT // 2,
+        (SHIFT // 2) - 1,
+        (SHIFT // 2) + 1,
+        # some half-way numbers (by sqrt)
+        2 ** (BIT_LENGTH // 2),
+        (2 ** (BIT_LENGTH // 2)) - 1,
+    ]
+]
 some_num_and_bool = [(a, b) for a in some_num for b in [0, 1]]  # linear length!
 # some_num_and_felt is optimised to test shl and shr
-some_num_and_felt = [(a, b) for a in some_num for b in [0, 1, 2, 3, 4, BIT_LENGTH // 2, BIT_LENGTH - 1, BIT_LENGTH, BIT_LENGTH + 1, BIT_LENGTH * 2]] 
+some_num_and_felt = [
+    (a, b)
+    for a in some_num
+    for b in [
+        0,
+        1,
+        2,
+        3,
+        4,
+        BIT_LENGTH // 2,
+        BIT_LENGTH - 1,
+        BIT_LENGTH,
+        BIT_LENGTH + 1,
+        BIT_LENGTH * 2,
+    ]
+]
 some_num_pair = [(a, b) for a in some_num for b in some_num]  # quadratic length!
 
 
 ## "Arbitrary" inputs for property-based tests.
-## Data is always a list of tuples (even if tuple is 1-ary)
 
 arbitrary_num = st.builds(Uint, st.integers(min_value=MIN_VAL, max_value=MAX_VAL))
 arbitrary_bool = st.integers(
@@ -121,11 +138,14 @@ arbitrary_num_and_felt = st.tuples(arbitrary_num, arbitrary_felt)
 ## "Some" and "Arbitrary" inputs designed for checking range-checks
 
 some_num_possibly_out_of_bounds = some_num + [Uint(MAX_VAL + 1), Uint(MIN_VAL - 1)]
-arbitrary_num_possibly_out_of_bounds =  st.builds(Uint, st.integers(
+arbitrary_num_possibly_out_of_bounds = st.builds(
+    Uint,
+    st.integers(
         # // rounds negative numbers _down_, so add 1 to round up and then another 1
         -(2**70),  # -(DEFAULT_PRIME // 2) + 2,
         2**70,  # (DEFAULT_PRIME // 2) - 1,
-))
+    ),
+)
 
 
 # The tests themselves
