@@ -1,5 +1,5 @@
 from functools import reduce
-from itertools import takewhile
+from itertools import takewhile, repeat
 
 from starkware.cairo.lang.cairo_constants import DEFAULT_PRIME
 
@@ -60,7 +60,10 @@ some_num = [
 
 
 def memory_iterator_from(memory, pointer):
-    while True:
+    # The iteration below is bounded to 2**16 steps.  The reasoning is that if we're reading more than 2**16 cells sequentially from the Cairo memory, then something has probably gone wrong:
+    for _ in repeat(
+        None, 2**16
+    ):  # `repeat(None, 2**16)` lazily generates 2**16 copies of `None`
         yield memory[pointer]
         pointer += 1
 
@@ -88,7 +91,9 @@ def is_num(a):
     )
 
 
-# int to num 
+# int to num
+# An intended use case here is that `a` here is a felt, thus the integer here is obtained from the Cairo VM.  
+# This matters in the following sense: in principle we might bound the `while` loop below but in practice we don't because in our intended use-case, `a` is obtained from a felt and so is bounded by DEFAULT_PRIME.
 def int_to_num(a):
     acc = []
     while a != 0:

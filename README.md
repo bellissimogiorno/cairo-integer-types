@@ -1,4 +1,4 @@
-# The _Cairo bitwise integer library_ (cairo-bitwise-int v0.3.0)
+# The _Cairo bitwise integer library_ (cairo-bitwise-int v0.3.1)
 
 Author: Jamie Gabbay
 
